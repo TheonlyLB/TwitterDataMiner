@@ -13,8 +13,8 @@ Preprocessing:
 1. tweet-preprocessor -Done
 2. Additional cleanup -Done
 Calculate sentiment with TextBlob - Done
-Study Elasticsearch guide
-Visualise data using the Elasticsearch DB and Kibana or Matplotlib
+Study Docker, Elasticsearch, Kibana
+Visualise data using both Kibana and Matplotlib
 Clean code
 Segment code into files - Done
 """
@@ -156,3 +156,43 @@ Rectangle	    length, width	    base, height
 Triangle	    base, height
 
 """
+DOCKER
+Docker allows developers to easily deploy applications on host operating systems by using containers.
+By convention, virtual machines are used to deploy applications. By using VMs, problems in the host OS rarely affect
+the guest OS used to run applications. However, this uses a lot of processing power. Containers provide most of the
+isolation in VMs while using much less processing power.
+docker images command to see a list of all images on your system.
+The pull command fetches the image from the  registry and saves it to our system
+When you call run, the Docker client finds the image, loads up the container and then runs a command in that container
+The docker ps command shows you all containers that are currently running.
+docker ps -a shows all containers that we ran
+
+The run command with the -it flags attaches us to an interactive tty in the container.
+Now we can run as many commands in the container as we want.
+use docker run --help to see a list of all flags
+
+Leaving stray containers wastes memory. docker rm followed by container ids from ps -a will delete containers
+we've ran.
+
+docker container prune deletes all containers that we've exited.
+docker run --rm flag automatically deletes the container once it's exited from
+
+docker rmi removes images
+
+RUNNING WEB SERVER FOR STATIC SITES
+# Pull an image from the docker registry and run it
+# Get the ports availabe and detach our terminal from the running container so we can close the terminal and keep
+container running
+$ docker run -d -P --name static-site prakhar1989/static-site
+# Return the ports available
+docker port static-site
+docker stop static-site to stop the running container
+
+docker images to show local images
+A docker image is similar to a git repo
+
+BUILDING AN IMAGE
+# Clone project repository
+git clone https://github.com/prakhar1989/docker-curriculum.git
+# All user created images are based on a base image. Since our project is in Python 3, it will be the base image
+#A Dockerfile is a text file that contains a list of commands that the Docker client calls while creating an image
