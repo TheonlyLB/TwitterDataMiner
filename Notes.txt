@@ -1,0 +1,158 @@
+"""
+PROJECT OVERVIEW
+A bot must continuously watch for activity and react automatically
+
+Stages of Development:
+Find guides and download packages/software-Done
+Obtain data from Twitter API-Done
+Store the data from streaming into a DataFrame:
+1. Convert JSON object to python dict
+2. Convert python dict to DataFrame - Done
+Store tweet stream into JSON file - Done
+Preprocessing:
+1. tweet-preprocessor -Done
+2. Additional cleanup -Done
+Calculate sentiment with TextBlob - Done
+Study Elasticsearch guide
+Visualise data using the Elasticsearch DB and Kibana or Matplotlib
+Clean code
+Segment code into files - Done
+"""
+REGEX
+A regular expression/regex is a sequence of characters/programming sub-language that helps you to find matches of
+patterns inside strings. Most letter or char patterns like 'a' match themselves in the string.
+Metachars don't match themselves, but act as modifiers. [] specify a char class, a set of characters to be matched.
+Characters can be listed individually[abc], or a range of characters can be used [a-c].
+Metacharacters are not active inside classes. For example, [akm$] will match any of the characters 'a', 'k', 'm', or '$'
+You can match the characters not listed within the class by complementing the set/including a '^' as the first character
+ of the class: [^5] will match any character except '5'.
+If you need to match a [ or \, precede them with a backslash to remove their special meaning: \[ or \\.
+Backslash can also be used in special sequences to match predefined sets:
+\d matches any decimal digit.
+\D matches any non-digit character.
+\s matches any whitespace character; this is equivalent to the class [ \t\n\r\f\v].
+\S matches any non-whitespace character.
+\w matches any alphanumeric character.
+\W matches any non-alphanumeric character.
+
+These sequences can be included in a character class
+
+'.' matches anything except a newline char
+
+You can specify that portions of the regex/pattern are repeated a certain num of times:
+'*' specifies that the previous character can be matched zero or more times, instead of exactly once.
+ca*t will match 'ct' (0 'a' characters), 'cat' (1 'a'), 'caaat' (3 'a' characters)
+'+' matches the char one or more times. '?' matches once or 0 times
+{m,n} means there must be at least m repetitions, and at most n. Default m is 0, and default n is infinity
+
+Note:
+Text string to be matched:\section
+Escaped backslash for re.compile():\\section
+Escaped backslashes for a string literal:"\\\\section"
+
+Use raw string notation instead:
+Backslashes need not be escaped in a string literal prefixed with 'r': "\\\\section" becomes '\\section'
+"""
+STREAMING
+Streaming allows you to watch for new tweets that match certain criteria.
+The stream object produces the stream by getting tweets that match some criteria.
+The stream listener processes tweets from the stream.
+Streams do not terminate automatically. To do so, return False from the on_status attribute
+If clients exceed a limited number of attempts to connect to the streaming API in a window of time, they will receive error 420.
+The amount of time a client has to wait after receiving error 420 will increase exponentially each time they make a failed attempt.
+"""
+SUPER()
+super() returns a proxy/temporary object that allows you to call a superclass’s methods
+We do so to build classes that extend the functionality of previously built classes.
+Calling the previously built methods with super() saves you from needing to rewrite those methods in your subclass,
+and allows you to swap out superclasses with minimal code changes.
+Inheritance: a class inherits attributes from another class without needing to implement them again.
+
+class Rectangle:
+    def __init__(self, length, width):
+        self.length = length
+        self.width = width
+        super().__init__(**kwargs)
+
+    def area(self):
+        return self.length * self.width
+
+    def perimeter(self):
+        return 2 * self.length + 2 * self.width
+
+# Here we declare that the Square class inherits from the Rectangle class
+class Square(Rectangle):
+    def __init__(self, length,**kwargs):
+        super().__init__(length, length,**kwargs)
+
+class Triangle:
+    def __init__(self, base, height,**kwargs):
+        self.base = base
+        self.height = height
+        super().__init__(**kwargs)
+    def tri_area(self):
+        return 0.5 * self.base * self.height
+
+class RightPyramid(Square, Triangle):
+    def __init__(self, base, slant_height,**kwargs):
+        self.base = base
+        self.slant_height = slant_height
+        kwargs["height"] = slant_height
+        kwargs["length"] = base
+        super().__init__(self.base,**kwargs)
+
+    def area(self):
+        base_area = super().area()
+        perimeter = super().perimeter()
+        return 0.5 * perimeter * self.slant_height + base_area
+
+    def area_2(self):
+        base_area = super().area()
+        triangle_area = super().tri_area()
+        return triangle_area * 4 + base_area
+
+>>> RightPyramid.__mro__
+(<class '__main__.RightPyramid'>, <class '__main__.Square'>,
+<class '__main__.Rectangle'>, <class '__main__.Triangle'>,
+<class 'object'>)
+
+Here, you’ve used super() to call the __init__() of the Rectangle class, allowing you to use it in the Square class
+without repeating code
+square.area() will use the .area() method in the superclass and print 16 without running super() again
+
+Super can take 2 parameters: the subclass and an instance of the subclass(the subclass itself or classes lower
+on the hierarchy
+In Python 3, the super(Square, self) call is equivalent to the parameterless super() call.
+super() searches for a matching method one level above the subclass param in the hierarchy
+
+Multiple Inheritance
+A subclass can inherit from multiple superclasses that don’t inherit from each other(sibling classes).
+The method resolution order tells Python how to search for inherited methods.
+Every class has an .__mro__ attribute that allows us to inspect the order
+
+RightPyramid initializes partially with the .__init__() from the Square class.
+This allows RightPyramid to use self.base as both the length and width of the.area() method in Rectangle
+
+Note:
+When using super() with multiple inheritance, classes should cooperate (method names are unique)
+All methods called with super() must have a call to their superclass’s version of that method:
+The .__init__() methods of Triangle and Rectangle must have super().__init__()
+All .__init__() calls must take a keyword dictionary.
+
+???
+kwargs is modified in some places (such as RightPyramid.__init__()): This will allow users of these objects to
+instantiate them only with the arguments that make sense for that particular object.
+
+Setting up named arguments before **kwargs: You can see this in RightPyramid.__init__(). This pops the key
+out of the **kwargs dictionary, so that by the time that it ends up at the end of the MRO in the object class,
+**kwargs is empty.
+
+Table of .__init__() calls in order, showing the class that owns that call, and the contents of kwargs during that call:
+
+Class	        Named Arguments	    kwargs
+RightPyramid	base, slant_height
+Square	        length	            base, height
+Rectangle	    length, width	    base, height
+Triangle	    base, height
+
+"""
