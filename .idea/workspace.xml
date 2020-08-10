@@ -191,6 +191,14 @@
       <option name="presentableId" value="Default" />
       <updated>1576132636165</updated>
     </task>
+    <task id="LOCAL-00001" summary="10/8/2020">
+      <created>1597026737545</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1597026737546</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -205,5 +213,10 @@
         </entry>
       </map>
     </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <option name="CHECK_NEW_TODO" value="false" />
+    <MESSAGE value="10/8/2020" />
+    <option name="LAST_COMMIT_MESSAGE" value="10/8/2020" />
   </component>
 </project>
