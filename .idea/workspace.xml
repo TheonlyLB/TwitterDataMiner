@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="834bfd92-c16b-46da-ab2e-ee6a9156b8fc" name="Default Changelist" comment="10/8/2020" />
+    <list default="true" id="834bfd92-c16b-46da-ab2e-ee6a9156b8fc" name="Default Changelist" comment="10/8/2020">
+      <change beforePath="$PROJECT_DIR$/tweet_dict.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tweet_favourites.json" beforeDir="false" />
+    </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
