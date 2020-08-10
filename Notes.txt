@@ -1,23 +1,4 @@
 """
-PROJECT OVERVIEW
-A bot must continuously watch for activity and react automatically
-
-Stages of Development:
-Find guides and download packages/software-Done
-Obtain data from Twitter API-Done
-Store the data from streaming into a DataFrame:
-1. Convert JSON object to python dict
-2. Convert python dict to DataFrame - Done
-Store tweet stream into JSON file - Done
-Preprocessing:
-1. tweet-preprocessor -Done
-2. Additional cleanup -Done
-Calculate sentiment with TextBlob - Done
-Study Docker, Elasticsearch, Kibana
-Visualise data using both Kibana and Matplotlib
-Clean code
-Segment code into files - Done
-"""
 REGEX
 A regular expression/regex is a sequence of characters/programming sub-language that helps you to find matches of
 patterns inside strings. Most letter or char patterns like 'a' match themselves in the string.
@@ -192,7 +173,97 @@ docker images to show local images
 A docker image is similar to a git repo
 
 BUILDING AN IMAGE
-# Clone project repository
+# 1. Clone project repository
 git clone https://github.com/prakhar1989/docker-curriculum.git
-# All user created images are based on a base image. Since our project is in Python 3, it will be the base image
-#A Dockerfile is a text file that contains a list of commands that the Docker client calls while creating an image
+# 2. Copy the Dockerfile to the project directory
+All user created images are based on a base image. Since our project is in Python 3, it will be the base image
+A Dockerfile is a text file that contains a list of commands that the Docker client calls while creating an image
+It is a file written in a text-editor. However, it must not have the .txt extension.
+# 3. Change working directory to project
+cd TwitterDataMiner
+# 4. Build the image with optional tag
+docker build t=elasticsearch-kibana .
+You may see 404 error when building the image. Once the version of Ubuntu we're using as the base image is no longer
+supported, you'll see those error messages. Resolve this by using the latest version for the base image.
+
+"""
+TEXTBLOB
+The textblob.sentiments module contains two sentiment analyzers, default PatternAnalyzer (based on the pattern library)
+and the NaiveBayesAnalyzer (an NLTK classifier trained on a movie reviews corpus).
+PatternAnalyzer uses a vocabulary of adjectives that occur frequently in product reviews, annotated with scores for
+sentiment polarity and subjectivity.
+
+TextBlob(str, analyzer = NaiveBayesAnalyzer()) trains the analyzer in each run, so runtime is really slow
+For faster runtime:
+    from textblob import Blobber
+    tb = Blobber(analyzer=NaiveBayesAnalyzer())
+    tb("sentence you want to test")
+
+Training the Naive Bayes Analyzer
+Use Nick Sander's Corpus of hand classified tweets as training set:
+https://github.com/aweiand/TwitterSentiment/tree/71c007948b8fb854b1df0b2a3a32d2629653e74b/GetTwitterCorpus OR
+https://github.com/karanluthra/twitter-sentiment-training/blob/master/README.md
+Because of Twitter’s Terms of Service, the actual tweets cannot be distributed online, and have to be downloaded with
+the python script included. Due to limitations in Twitter’s API, the download process takes about 43 hours.
+
+Set your access key and secret, consumer key and secret to the global variables declared at the beginning of install.py
+Start the tweet downloader script: python install.py
+Hit enter three times to accept the defaults.
+Wait till the script indicates that it’s done.
+
+Note: the script is smart enough to resume where it left off if downloading is interrupted.
+The completed corpus will be in full-corpus.csv. A copy of all the raw data downloaded from Twitter is kept in rawdata/.
+"""
+NAIVE BAYES CLASSIFIER
+1- Build a list of all the words in our training data set.
+2- Match tweet content against our vocabulary — word-by-word.
+3- Build our word feature vector.
+4- Plug our feature vector into the Naive Bayes Classifier.
+
+"""
+CLASSES
+Classes are vital to the Object Oriented Programming style of Python.
+Advantages:
+OOP describes code in a standard way, increasing readability. Instead of using complex data storage like lists of dicts,
+classes allow you to refer to one of a group of related data structures. If a program processes students, it keeps all
+info in one spot.
+OOP allows inheritance. (See notes on super())
+Methods (the OOP version of functions) are defined beside the data they operate on. When procedure and data are written
+and stored together, this is called encapsulation.
+All the above features allow for greater reusability.
+
+"""
+ELASTICSEARCH
+Elasticsearch is a real time search and analytics engine that stores indexed documents.
+To retrieve documents we need the index (the database), the datatype (type of document), and the ID (document id)
+Indexing is the storing of documents in elasticsearch with es.index(index, doc_type, id, body)
+
+An Elasticsearch cluster can contain multiple indices, which in turn contain multiple types.
+These types hold multiple documents, and each document has multiple fields.
+
+Retrieve an es doc with:
+res = es.get(index, doc_type, id)
+res['_source'] for content of doc
+
+Delete doc with es.delete()
+
+res= es.search(index,body={'query':{}})
+res['hits']['hits'] for list of dicts(results)
+
+query accepts these operators:
+match:  'match':{'first_name':'nitin' to find doc with first_name':'nitin'
+
+bool takes a dictionary containing at least one of must, should, or must_not, each of which takes a list of other
+search operators: 'bool':{'must':[{'match':{'first_name':'nitin'}}]}
+
+filter: 'bool':{'must':[{'match':{'first_name':'nitin'}}],\
+                "filter":{"range":{"age":{"gt":25}}}} for results older than 25
+
+'match_phrase' instead of 'match' to search for phrases
+
+
+"""
+POSTMAN
+Used to test RESTFUL APIs by allowing you to make HTML requests with an accessible UI
+
+

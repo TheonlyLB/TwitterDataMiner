@@ -1,66 +1,33 @@
 # Invoke the API object's methods to call the Twitter API
-def create_tweet():
-    api.update_status("Hello Tweepy")
+import tweepy, nltk
+import pandas as pd
+from config import consumer_key, consumer_secret, access_token, access_token_secret
 
-def print_user_info():
-    user = api.get_user('nytimes')
+# Authenticate your app to Twitter
+# Creating the authentication object
+auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
+# Setting your access token and secret
+auth.set_access_token(access_token, access_token_secret)
 
-    print("User details:")
-    print(user.name)
-    print(user.description)
-    print(user.location)
-
-    print("Last 20 Followers:")
-    for follower in user.followers():
-        print(follower.name)
-
-def print_user_newest():
-    # Using the API object to get 20 newest tweets from your/others' timeline
-    # my_timeline = api.home_timeline()
-    # screen_name is the account handle. tweet_mode='extended' shows full text of the tweets
-    target_timeline = api.user_timeline(screen_name = handle, count = 20, exclude_replies = True,
-                                        include_rts = False, tweet_mode='extended')
-
-    for tweet in target_timeline:
-    # print the text stored inside the tweet object
-        print ('{',tweet.extended_tweet['full_text'],'}\n\n')
-
-def print_relevant_to_topic():
-    # The search term you want to find
-    query = "President Trump"
-    # Language code (follows ISO 639-1 standards)
-    language = "en"
-    # No. of most recent tweets obtained
-    count = 20
-
-    # Search public tweets containing the query
-    results = api.search(q=query, lang=language, count=count, tweet_mode='extended')
-
-    for tweet in results:
-        print ("{",tweet.user.screen_name,":\n",tweet.extended_tweet['full_text'],"}\n\n")
-
-def print_geographic_trends():
-    # Set place id. Place id is the WOEID found from: https://nations24.com/. WOEID of SG: 23424948
-    place_id = 23424948
-    trends_result = api.trends_place(place_id)
-    # trends_result object is a list of dictionaries, containing another list of dictionaries
-    for trend in trends_result[0]['trends']:
-        print(trend['name'])
-
+# Creating the API object while passing in auth information
+# Additional arguments ensures you are notified if app exceeds rate limit (180 tweets/15min)
+api = tweepy.API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True, timeout=300)
 """
 Finish preprocessing of tweets after tweet-preprocessor. Stop words are words which are useless in natural language
 processing, such as 'the'.
 """
-from nltk.corpus import stopwords # Natural Language Toolkit
-from nltk.tokenize import word_tokenize
-import re
-import string
-def filter_tweets(tweet):
+
+
+def filter_tweets(tweet, stop_words):
     """
     In re, the pattern is the regular expression to be matched. The string is searched to match the pattern
     at the beginning of string. Flags are modifiers specified using bitwise OR (|).
     Returns string
     """
+
+    from nltk.tokenize import word_tokenize
+    import re
+    from string import punctuation
     # Emoji patterns
     # re.compile converts a regex pattern into a regex object(which has various methods) so pattern can be
     # efficiently reused. The regex pattern is passed as a string.
@@ -80,8 +47,7 @@ def filter_tweets(tweet):
                                u"\U0001F000-\U0001F02F"
 
                                "]+")
-    # Converts array of english stopwords to an ordered sequence of distinct elements
-    stop_words = set(stopwords.words('english'))
+    tweet = tweet.lower()  # convert text to lower-case
     # replace the colon symbol left after tweepy preprocessing
     tweet = re.sub(r':', '', tweet)
     tweet = re.sub(r'‚Ä¶', '', tweet)
@@ -91,14 +57,257 @@ def filter_tweets(tweet):
     tweet = emoji_pattern.sub(r'', tweet)
 
     # Splits strings into tokens/words based on whitespace and punctuation, returns a list
+    # removes repeated characters (helloooooooo into hello)
     word_tokens = word_tokenize(tweet)
     # Create empty list
     filtered_tweet = []
     # Loop through tokens in tweet
     for w in word_tokens:
         # check tokens against stop words and punctuations
-        if w not in stop_words and w not in string.punctuation:
+        if w not in stop_words and w not in punctuation:
             # append filtered text to list
             filtered_tweet.append(w)
     # convert list to string
     return ' '.join(filtered_tweet)
+
+
+# Class to allow for multiple return values
+
+class TextBlob_Classifier:
+    # Convert method to static method so it does not require 'self argument', only applicable for methods that do
+    # not use self in code.
+    @staticmethod
+    def get_input():
+        from textblob.sentiments import NaiveBayesAnalyzer, PatternAnalyzer
+        # Get user input for analyzer
+        while True:
+            chosen_analyzer = input("Please enter 1 for NaiveBayes Analyzer or 2 for Pattern Analyzer:")
+            # Choose and train Analyzer
+            if chosen_analyzer == '1':
+                analyzer = NaiveBayesAnalyzer()
+                # Store option in common var for parameter of plt.pie
+                analyzer_str = 'NaiveBayesAnalyzer()'
+                break
+            elif chosen_analyzer == '2':
+                analyzer = PatternAnalyzer()
+                analyzer_str = 'PatternAnalyzer()'
+                break
+            else:
+                print("Please enter valid input")
+
+        return chosen_analyzer, analyzer, analyzer_str
+
+    @staticmethod
+    def analyze_sentiment(tweet_list, chosen_analyzer, analyzer):
+        from textblob import Blobber
+
+        # Create blank list to contain tweet text
+        sentiment_list = []
+        sentiment_analyzer = Blobber(analyzer=analyzer)
+        # For each tweet, analyse the sentiment and append the result to a list
+        for tweet in tweet_list:
+            Sentiment = sentiment_analyzer(tweet)
+            # If NaiveBayes, sentiment is available as a str (pos/neg)
+            if chosen_analyzer == '1':
+                sentiment_list.append(Sentiment.sentiment.classification)
+            else:
+                # If Pattern, sentiment attr in turn has attr polarity[-1.0, 1.0] and subjectivity[0.0, 1.0]
+                # Determine if sentiment is positive, negative, or neutral
+                if Sentiment.sentiment.polarity < 0:
+                    sentiment = "neg"
+                elif Sentiment.sentiment.polarity == 0:
+                    sentiment = "neu"
+                else:
+                    sentiment = "pos"
+                sentiment_list.append(sentiment)
+
+        return sentiment_list
+
+
+# Builds Training Set of tweets about tech companies (Apple, Google, Microsoft)
+def build_tech_training_set(corpus, training_set):
+    training_list = []
+    # Build Tech Training Set
+    corpus_df = pd.read_excel(corpus, header=None, encoding="ISO-8859-1")
+    for index, row in corpus_df.iterrows():
+        dict = {"text": row[2], "label": row[0]}
+        # Forms list of dicts
+        training_list.append(dict)
+
+    # Write text to corpus excel file
+    training_df = pd.DataFrame(training_list)
+    writer = pd.ExcelWriter(training_set, engine='xlsxwriter')
+    training_df.to_excel(writer, encoding="ISO-8859-1", index=False)
+    writer.save()
+    return training_list
+
+
+def build_sentiment140_training_set(corpus, training_set):
+    training_list = []
+    # Build Sentiment 140 Training Set
+    # Convert number labels in Sentiment140 to positive/neutral/negative
+    # You should not write to the file you are reading from
+    corpus_df = pd.read_excel(corpus, header=None, encoding="ISO-8859-1")
+    for index, row in corpus_df.iterrows():
+        dict = {"text": row[2], "label": row[0]}
+        if dict['label'] == '3' or dict['label'] == '4':
+            dict['label'] = 'positive'
+        elif dict['label'] == '2':
+            dict['label'] = 'neutral'
+        else:
+            dict['label'] = 'negative'
+        # Forms list of dicts
+        training_list.append(dict)
+
+    # Write text to training excel file
+    training_df = pd.DataFrame(training_list[0:1048576])
+    writer = pd.ExcelWriter(training_set, engine='xlsxwriter')
+    training_df.to_excel(writer, encoding="ISO-8859-1", index=False)
+
+    writer.save()
+    return training_list
+
+
+def build_airline_training_set(corpus, training_set):
+    training_list = []
+    # Build Airline Training Set
+    corpus_df = pd.read_excel(corpus, header=None, encoding="ISO-8859-1")
+    for index, row in corpus_df.iterrows():
+        dict = {"text": row[2], "label": row[0]}
+        # Forms list of dicts
+        training_list.append(dict)
+
+    # Write text to corpus excel file
+    training_df = pd.DataFrame(training_list)
+    writer = pd.ExcelWriter(training_set, engine='xlsxwriter')
+    training_df.to_excel(writer, encoding="ISO-8859-1", index=False)
+    writer.save()
+    return training_list
+
+
+class personal_classifier:
+    @staticmethod
+    def train_classifier():
+        # Postpone imports until you need it to prevent circular import error
+        from buildtechtrainingset import tech_tuple_list
+        from buildSentiment140trainingset import sentiment140_tuple_list
+        from buildairlinetrainingset import airline_tuple_list
+        personal = personal_classifier()
+        while True:
+            try:
+                # Get user input on training model
+                chosen_model = input("Choose training model:\n(1) Tech Companies [Niek Sanders Dataset]\n"
+                                     "(2) General Tweets [Sentiment 140]\n(3) Airlines\nModel: ")
+
+                if chosen_model == '1':
+                    # Applies extract_features() to preprocessedTrainingData
+                    chosen_features = nltk.classify.apply_features(personal.extract_tech_features, tech_tuple_list,
+                                                                   labeled=True)
+                    break
+                elif chosen_model == '2':
+                    chosen_features = nltk.classify.apply_features(personal.extract_sentiment140_features,
+                                                                   sentiment140_tuple_list, labeled=True)
+                    break
+                elif chosen_model == '3':
+                    # returns LazyMap object(list of (text, label) tuples) if labeled = True
+                    chosen_features = nltk.classify.apply_features(personal.extract_airline_features, airline_tuple_list,
+                                                                   labeled=True)
+                    break
+                else:
+                    print('Please enter valid input')
+            except Exception as e:
+                print(e)
+                break
+        # Train the classifiers
+        # Only accepts list of tuples (text, label)
+        chosen_classifier = nltk.NaiveBayesClassifier.train(chosen_features)
+        return chosen_model, chosen_classifier
+
+    # Build NLP Vocab
+    @staticmethod
+    def build_vocabulary(preprocessed_training_data):
+        from nltk import word_tokenize
+        all_words = []
+
+        # Create list of all words in Training Set
+        for dict in preprocessed_training_data:
+            all_words.extend(word_tokenize(dict['text'].lower()))
+
+        # Create dict of distinct words, with its frequency in Training Set as values
+        word_dict = nltk.FreqDist(all_words)
+
+        # Store each distinct word as a list
+        word_features = word_dict.keys()
+        return word_features
+
+    @staticmethod
+    def extract_tech_features(preprocessed_training_data):
+        from buildtechtrainingset import tech_words
+        features_dict = {}
+        # preprocessed_training_data is text of each tweet
+        # Converts tweet to an ordered sequence of distinct elements
+        tweet_words = set(preprocessed_training_data.split())
+
+        # Check if word in features is in the tweet
+        # Creates dictionary where keys are all words in features
+        # and values are True/False for their presence in each tweet
+        for word in tech_words:
+            features_dict[word] = (word in tweet_words)
+
+        return features_dict
+
+    @staticmethod
+    def extract_sentiment140_features(preprocessed_training_data):
+        from buildSentiment140trainingset import sentiment140_words
+        features_dict = {}
+        # Converts tweet to an ordered sequence of distinct elements
+        tweet_words = set(preprocessed_training_data.split())
+
+        # Check if word in features is in the tweet
+        # Creates dictionary where keys are all words in features
+        # and values are True/False for their presence in each tweet
+        for word in sentiment140_words:
+            features_dict[word] = (word in tweet_words)
+
+        return features_dict
+
+    @staticmethod
+    def extract_airline_features(preprocessed_training_data):
+        from buildairlinetrainingset import airline_words
+        features_dict = {}
+
+        # Converts tweet to an ordered sequence of distinct elements
+        tweet_words = set(preprocessed_training_data.split())
+
+        # Check if word in features is in the tweet
+        # Creates dictionary where keys are all words in features
+        # and values are True/False for their presence in each tweet
+        for word in airline_words:
+            features_dict[word] = (word in tweet_words)
+
+        return features_dict
+
+    @staticmethod
+    def extract_test_features(tweet_list, chosen_model):
+        from buildtechtrainingset import tech_words
+        from buildSentiment140trainingset import sentiment140_words
+        from buildairlinetrainingset import airline_words
+        if chosen_model == '1':
+            chosen_words = tech_words
+        elif chosen_model == '2':
+            chosen_words = sentiment140_words
+        elif chosen_model == '3':
+            chosen_words = airline_words
+        test_features = {}
+        for tweet in tweet_list:
+            # Converts tweet to an ordered sequence of distinct elements
+            tweet_words = set(tweet.split())
+
+            # Check if word in features is in the tweet
+            # Creates dictionary where keys are all words in features
+            # and values are True/False for their presence in each tweet
+            for word in chosen_words:
+                test_features[word] = (word in tweet_words)
+
+        return test_features
+
